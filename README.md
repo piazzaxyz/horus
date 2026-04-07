@@ -4,28 +4,28 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  𓂀 HORUS v1.0.0  [Tokyo Night]                        ● Connected   │
+│  𓂀 HORUS v1.0.0  [Tokyo Night]                        ● Connected    │
 ├────────────────────┬─────────────────────────────────────────────────┤
-│                    │                                                  │
-│  NAVIGATION        │   Dashboard                                      │
-│                    │                                                  │
-│  ● Dashboard       │   ┌──────────────┐  ┌──────────────┐           │
-│  ○ HTTP Analyzer   │   │ Tasks Run    │  │ Leaks Found  │           │
-│  ○ Task Runner     │   │     42       │  │      3       │           │
-│  ○ Leak Scanner    │   └──────────────┘  └──────────────┘           │
-│  ○ Throttle        │                                                  │
-│  ○ Security        │   ┌──────────────┐  ┌──────────────┐           │
-│  ────────────────  │   │  Avg. Time   │  │   Security   │           │
-│  ○ Themes          │   │   145ms      │  │  Issues: 7   │           │
-│  ○ Tutorial        │   └──────────────┘  └──────────────┘           │
-│                    │                                                  │
-│                    │   Recent Activity                                │
+│                    │                                                 │
+│  NAVIGATION        │   Dashboard                                     │
+│                    │                                                 │
+│  ● Dashboard       │   ┌──────────────┐  ┌──────────────┐            │
+│  ○ HTTP Analyzer   │   │ Tasks Run    │  │ Leaks Found  │            │
+│  ○ Task Runner     │   │     42       │  │      3       │            │
+│  ○ Leak Scanner    │   └──────────────┘  └──────────────┘            │
+│  ○ Throttle        │                                                 │
+│  ○ Security        │   ┌──────────────┐  ┌──────────────┐            │
+│  ────────────────  │   │  Avg. Time   │  │   Security   │            │
+│  ○ Themes          │   │   145ms      │  │  Issues: 7   │            │
+│  ○ Tutorial        │   └──────────────┘  └──────────────┘            │
+│                    │                                                 │
+│                    │   Recent Activity                               │
 │                    │   ✓ GET /api/users     200  142ms               │
 │                    │   ✗ POST /api/auth     401   89ms  [LEAK]       │
 │                    │   ⚠ GET /api/data      200 1204ms  [SLOW]       │
-├────────────────────┴─────────────────────────────────────────────────┤
-│  [1-8] Navigate   [r] Run   [t] Theme   [?] Help   [q] Quit         │
-└──────────────────────────────────────────────────────────────────────┘
+├────────────────────┴──────────────────────────────────────────────────┤
+│  [1-8] Navigate   [r] Run   [t] Theme   [?] Help   [q] Quit           │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
