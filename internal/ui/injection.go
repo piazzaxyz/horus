@@ -158,7 +158,7 @@ func (m InjectionModel) Update(msg tea.Msg) (InjectionModel, tea.Cmd) {
 			} else {
 				m.injType = core.InjectionSQLi
 			}
-		case "r", "enter":
+		case "ctrl+r", "enter":
 			if !m.isLoading {
 				if m.urlInput.Value() != "" {
 					m.isLoading = true

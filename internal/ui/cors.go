@@ -111,7 +111,7 @@ func (m CORSModel) Update(msg tea.Msg) (CORSModel, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "r", "enter":
+		case "ctrl+r", "enter":
 			if !m.isLoading {
 				if m.urlInput.Value() != "" {
 					m.isLoading = true

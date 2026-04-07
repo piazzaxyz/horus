@@ -172,7 +172,7 @@ func (m FuzzerModel) Update(msg tea.Msg) (FuzzerModel, tea.Cmd) {
 			case 2:
 				m.concurrencyInput.Focus()
 			}
-		case "r", "enter":
+		case "ctrl+r", "enter":
 			if !m.isLoading {
 				if m.urlInput.Value() != "" {
 					m.isLoading = true

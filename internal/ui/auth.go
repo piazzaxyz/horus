@@ -231,7 +231,7 @@ func (m AuthModel) Update(msg tea.Msg) (AuthModel, tea.Cmd) {
 				m.activeField = 0
 				m = m.focusField(0)
 			}
-		case "r", "enter":
+		case "ctrl+r", "enter":
 			if !m.isLoading {
 				if m.urlInput.Value() != "" {
 					m.isLoading = true

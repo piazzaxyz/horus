@@ -174,7 +174,7 @@ func (m PortScanModel) Update(msg tea.Msg) (PortScanModel, tea.Cmd) {
 			case 2:
 				m.endPortInput.Focus()
 			}
-		case "r", "enter":
+		case "ctrl+r", "enter":
 			if !m.isLoading {
 				if m.hostInput.Value() != "" {
 					m.isLoading = true

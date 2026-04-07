@@ -146,10 +146,10 @@ func (m LeaksModel) Update(msg tea.Msg) (LeaksModel, tea.Cmd) {
 				m.urlInput.Blur()
 				m.rawInput.Focus()
 			}
-		case "ctrl+r":
+		case "ctrl+m":
 			// Toggle between URL and raw input modes
 			m.useRaw = !m.useRaw
-		case "r", "enter":
+		case "ctrl+r", "enter":
 			if m.activeField == 0 || m.activeField == 1 {
 				if !m.isLoading {
 					input := m.urlInput.Value()

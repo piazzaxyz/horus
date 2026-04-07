@@ -143,7 +143,7 @@ func (m ThrottleModel) Update(msg tea.Msg) (ThrottleModel, tea.Cmd) {
 		case "shift+tab":
 			m.activeField = (m.activeField + 2) % 3
 			m.focusField()
-		case "r", "enter":
+		case "ctrl+r", "enter":
 			if m.activeField < 3 && !m.running {
 				url := m.urlInput.Value()
 				if url != "" {

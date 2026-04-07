@@ -95,7 +95,7 @@ func (m SecurityModel) Update(msg tea.Msg) (SecurityModel, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "r", "enter":
+		case "ctrl+r", "enter":
 			url := m.urlInput.Value()
 			if url != "" && !m.isLoading {
 				m.isLoading = true

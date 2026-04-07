@@ -181,7 +181,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "T":
 			a.currentPage = core.PageThemes
 			return a, nil
-		case "t":
+		case "ctrl+t":
 			a.cycleTheme()
 			return a, nil
 		}

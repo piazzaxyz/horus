@@ -149,7 +149,7 @@ func renderFooter(current core.Page, width int, t theme.Theme) string {
 		Padding(0, 1)
 
 	pageName := core.PageNames[current]
-	keys := "q:quit  ?:help  t:theme  1-9,0,-,=:views  T:themes  r:run  Tab:focus"
+	keys := "q:quit  ?:help  ctrl+t:theme  1-9,0,-,=:views  T:themes  ctrl+r:run  Tab:focus"
 	spacer := strings.Repeat(" ", max(0, width-len(pageName)-len(keys)-4))
 
 	return style.Render(fmt.Sprintf(" %s%s%s ", pageName, spacer, keys))
@@ -193,7 +193,7 @@ func renderHelp(width, height int, t theme.Theme) string {
 		{"G", "Go to bottom"},
 		{"", ""},
 		{"Actions", ""},
-		{"r / Enter", "Run / Execute"},
+		{"ctrl+r / Enter", "Run / Execute"},
 		{"Tab", "Focus next input field"},
 		{"Shift+Tab", "Focus previous input field"},
 		{"[ / ]", "Cycle type / mode"},
@@ -202,7 +202,7 @@ func renderHelp(width, height int, t theme.Theme) string {
 		{"Global", ""},
 		{"q", "Quit HORUS"},
 		{"?", "Toggle this help overlay"},
-		{"t", "Cycle to next theme"},
+		{"ctrl+t", "Cycle to next theme"},
 	}
 
 	var lines []string

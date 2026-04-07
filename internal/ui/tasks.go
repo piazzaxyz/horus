@@ -171,7 +171,7 @@ func (m TasksModel) Update(msg tea.Msg) (TasksModel, tea.Cmd) {
 		switch m.mode {
 		case tasksModeList:
 			switch msg.String() {
-			case "r", "enter":
+			case "ctrl+r", "enter":
 				if len(m.tasks) > 0 && !m.running {
 					m.running = true
 					m.results = nil

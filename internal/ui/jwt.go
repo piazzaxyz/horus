@@ -78,7 +78,7 @@ func (m JWTModel) Update(msg tea.Msg) (JWTModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "r":
+		case "ctrl+r", "enter":
 			// Analyze the token
 			token := strings.TrimSpace(m.tokenInput.Value())
 			if token != "" {
