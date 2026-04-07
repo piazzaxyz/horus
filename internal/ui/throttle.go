@@ -26,6 +26,7 @@ type ThrottleModel struct {
 	countInput    textinput.Model
 	intervalInput textinput.Model
 	activeField   int
+	typing        bool
 	analysis      *core.ThrottleAnalysis
 	running       bool
 	spinner       spinner.Model
@@ -41,7 +42,6 @@ func NewThrottle() ThrottleModel {
 	url := textinput.New()
 	url.Placeholder = "https://api.example.com/endpoint"
 	url.CharLimit = 2048
-	url.Focus()
 
 	count := textinput.New()
 	count.Placeholder = "20"
@@ -86,6 +86,11 @@ func (m *ThrottleModel) SetSize(w, h int) {
 	m.countInput.Width = 8
 	m.intervalInput.Width = 10
 	m.progress.Width = contentWidth - 4
+}
+
+// IsTyping returns true when in input editing mode.
+func (m ThrottleModel) IsTyping() bool {
+	return m.typing
 }
 
 // runThrottle executes the throttle test.
@@ -138,13 +143,34 @@ func (m ThrottleModel) Update(msg tea.Msg) (ThrottleModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
-			m.activeField = (m.activeField + 1) % 3
+			if !m.typing {
+				m.typing = true
+				m.activeField = 0
+			} else {
+				m.activeField = (m.activeField + 1) % 3
+			}
 			m.focusField()
 		case "shift+tab":
-			m.activeField = (m.activeField + 2) % 3
-			m.focusField()
-		case "ctrl+r", "enter":
-			if m.activeField < 3 && !m.running {
+			if m.typing {
+				m.activeField = (m.activeField + 2) % 3
+				m.focusField()
+			}
+		case "ctrl+s":
+			m.typing = false
+			m.urlInput.Blur()
+			m.countInput.Blur()
+			m.intervalInput.Blur()
+		case "ctrl+r":
+			if !m.running {
+				url := m.urlInput.Value()
+				if url != "" {
+					m.running = true
+					m.analysis = nil
+					cmds = append(cmds, m.runThrottle(), m.spinner.Tick)
+				}
+			}
+		case "enter":
+			if m.typing && !m.running {
 				url := m.urlInput.Value()
 				if url != "" {
 					m.running = true
@@ -168,20 +194,22 @@ func (m ThrottleModel) Update(msg tea.Msg) (ThrottleModel, tea.Cmd) {
 			}
 		}
 
-		// Update focused input
-		switch m.activeField {
-		case 0:
-			var cmd tea.Cmd
-			m.urlInput, cmd = m.urlInput.Update(msg)
-			cmds = append(cmds, cmd)
-		case 1:
-			var cmd tea.Cmd
-			m.countInput, cmd = m.countInput.Update(msg)
-			cmds = append(cmds, cmd)
-		case 2:
-			var cmd tea.Cmd
-			m.intervalInput, cmd = m.intervalInput.Update(msg)
-			cmds = append(cmds, cmd)
+		// Update focused input — only in typing mode
+		if m.typing {
+			switch m.activeField {
+			case 0:
+				var cmd tea.Cmd
+				m.urlInput, cmd = m.urlInput.Update(msg)
+				cmds = append(cmds, cmd)
+			case 1:
+				var cmd tea.Cmd
+				m.countInput, cmd = m.countInput.Update(msg)
+				cmds = append(cmds, cmd)
+			case 2:
+				var cmd tea.Cmd
+				m.intervalInput, cmd = m.intervalInput.Update(msg)
+				cmds = append(cmds, cmd)
+			}
 		}
 	}
 

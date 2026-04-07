@@ -33,6 +33,7 @@ type PortScanModel struct {
 	isLoading      bool
 	spinner        spinner.Model
 	activeField    int // 0=host, 1=startPort, 2=endPort
+	typing         bool
 	width          int
 	height         int
 	t              theme.Theme
@@ -44,7 +45,6 @@ func NewPortScan() PortScanModel {
 	hostIn := textinput.New()
 	hostIn.Placeholder = "192.168.1.1 or example.com"
 	hostIn.CharLimit = 256
-	hostIn.Focus()
 
 	startIn := textinput.New()
 	startIn.Placeholder = "1"
@@ -94,6 +94,11 @@ func (m *PortScanModel) SetSize(w, h int) {
 	}
 	m.viewport.Width = contentWidth - 4
 	m.viewport.Height = vpHeight
+}
+
+// IsTyping returns true when in input editing mode.
+func (m PortScanModel) IsTyping() bool {
+	return m.typing
 }
 
 func (m PortScanModel) runScan() tea.Cmd {
@@ -149,7 +154,12 @@ func (m PortScanModel) Update(msg tea.Msg) (PortScanModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
-			m.activeField = (m.activeField + 1) % 3
+			if !m.typing {
+				m.typing = true
+				m.activeField = 0
+			} else {
+				m.activeField = (m.activeField + 1) % 3
+			}
 			m.hostInput.Blur()
 			m.startPortInput.Blur()
 			m.endPortInput.Blur()
@@ -162,26 +172,38 @@ func (m PortScanModel) Update(msg tea.Msg) (PortScanModel, tea.Cmd) {
 				m.endPortInput.Focus()
 			}
 		case "shift+tab":
-			m.activeField = (m.activeField + 2) % 3
+			if m.typing {
+				m.activeField = (m.activeField + 2) % 3
+				m.hostInput.Blur()
+				m.startPortInput.Blur()
+				m.endPortInput.Blur()
+				switch m.activeField {
+				case 0:
+					m.hostInput.Focus()
+				case 1:
+					m.startPortInput.Focus()
+				case 2:
+					m.endPortInput.Focus()
+				}
+			}
+		case "ctrl+s":
+			m.typing = false
 			m.hostInput.Blur()
 			m.startPortInput.Blur()
 			m.endPortInput.Blur()
-			switch m.activeField {
-			case 0:
-				m.hostInput.Focus()
-			case 1:
-				m.startPortInput.Focus()
-			case 2:
-				m.endPortInput.Focus()
+		case "ctrl+r":
+			if !m.isLoading && m.hostInput.Value() != "" {
+				m.isLoading = true
+				m.results = nil
+				m.err = nil
+				cmds = append(cmds, m.runScan(), m.spinner.Tick)
 			}
-		case "ctrl+r", "enter":
-			if !m.isLoading {
-				if m.hostInput.Value() != "" {
-					m.isLoading = true
-					m.results = nil
-					m.err = nil
-					cmds = append(cmds, m.runScan(), m.spinner.Tick)
-				}
+		case "enter":
+			if m.typing && !m.isLoading && m.hostInput.Value() != "" {
+				m.isLoading = true
+				m.results = nil
+				m.err = nil
+				cmds = append(cmds, m.runScan(), m.spinner.Tick)
 			}
 		case "g":
 			m.viewport.GotoTop()
@@ -193,7 +215,7 @@ func (m PortScanModel) Update(msg tea.Msg) (PortScanModel, tea.Cmd) {
 			m.viewport.LineUp(1)
 		}
 
-		if !m.isLoading {
+		if m.typing && !m.isLoading {
 			var cmd tea.Cmd
 			switch m.activeField {
 			case 0:

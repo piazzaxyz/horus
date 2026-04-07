@@ -138,52 +138,58 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, nil
 		}
 
-		// Global navigation
+		// Always-global shortcuts (safe ctrl combos + quit)
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return a, tea.Quit
-		case "1":
-			a.currentPage = core.PageDashboard
-			return a, nil
-		case "2":
-			a.currentPage = core.PageAnalyzer
-			return a, nil
-		case "3":
-			a.currentPage = core.PageTasks
-			return a, nil
-		case "4":
-			a.currentPage = core.PageLeaks
-			return a, nil
-		case "5":
-			a.currentPage = core.PageThrottle
-			return a, nil
-		case "6":
-			a.currentPage = core.PageSecurity
-			return a, nil
-		case "7":
-			a.currentPage = core.PageInjection
-			return a, nil
-		case "8":
-			a.currentPage = core.PageFuzzer
-			return a, nil
-		case "9":
-			a.currentPage = core.PagePortScan
-			return a, nil
-		case "0":
-			a.currentPage = core.PageJWT
-			return a, nil
-		case "-":
-			a.currentPage = core.PageCORS
-			return a, nil
-		case "=":
-			a.currentPage = core.PageAuth
-			return a, nil
-		case "T":
-			a.currentPage = core.PageThemes
-			return a, nil
 		case "ctrl+t":
 			a.cycleTheme()
 			return a, nil
+		}
+
+		// Navigation shortcuts — only fire when no input field is focused
+		if !a.isTyping() {
+			switch msg.String() {
+			case "1":
+				a.currentPage = core.PageDashboard
+				return a, nil
+			case "2":
+				a.currentPage = core.PageAnalyzer
+				return a, nil
+			case "3":
+				a.currentPage = core.PageTasks
+				return a, nil
+			case "4":
+				a.currentPage = core.PageLeaks
+				return a, nil
+			case "5":
+				a.currentPage = core.PageThrottle
+				return a, nil
+			case "6":
+				a.currentPage = core.PageSecurity
+				return a, nil
+			case "7":
+				a.currentPage = core.PageInjection
+				return a, nil
+			case "8":
+				a.currentPage = core.PageFuzzer
+				return a, nil
+			case "9":
+				a.currentPage = core.PagePortScan
+				return a, nil
+			case "0":
+				a.currentPage = core.PageJWT
+				return a, nil
+			case "-":
+				a.currentPage = core.PageCORS
+				return a, nil
+			case "=":
+				a.currentPage = core.PageAuth
+				return a, nil
+			case "T":
+				a.currentPage = core.PageThemes
+				return a, nil
+			}
 		}
 
 		// Delegate to current view
@@ -605,6 +611,12 @@ func (a *App) View() string {
 		content = "Unknown page"
 	}
 
+	// Clamp content height to prevent overflow and double-footer
+	contentLines := strings.Split(content, "\n")
+	if len(contentLines) > contentHeight {
+		content = strings.Join(contentLines[:contentHeight], "\n")
+	}
+
 	// Main area: sidebar + content
 	mainArea := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, content)
 
@@ -614,6 +626,36 @@ func (a *App) View() string {
 		Foreground(lipgloss.Color(a.t.Foreground))
 
 	return bgStyle.Render(strings.Join([]string{header, mainArea, footer}, "\n"))
+}
+
+// isTyping returns true when the current view has a focused text input,
+// so global navigation shortcuts should not fire.
+func (a *App) isTyping() bool {
+	switch a.currentPage {
+	case core.PageAnalyzer:
+		return a.analyzer.IsTyping()
+	case core.PageTasks:
+		return a.tasks.IsTyping()
+	case core.PageLeaks:
+		return a.leaks.IsTyping()
+	case core.PageThrottle:
+		return a.throttle.IsTyping()
+	case core.PageSecurity:
+		return a.security.IsTyping()
+	case core.PageInjection:
+		return a.injection.IsTyping()
+	case core.PageFuzzer:
+		return a.fuzzer.IsTyping()
+	case core.PagePortScan:
+		return a.portScan.IsTyping()
+	case core.PageJWT:
+		return a.jwt.IsTyping()
+	case core.PageCORS:
+		return a.cors.IsTyping()
+	case core.PageAuth:
+		return a.auth.IsTyping()
+	}
+	return false
 }
 
 func (a *App) cycleTheme() {

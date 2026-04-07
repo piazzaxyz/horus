@@ -458,6 +458,11 @@ func tableRow(cols []string, widths []int, color string, t theme.Theme) string {
 	return strings.Join(parts, " ")
 }
 
+// IsTyping returns true when the add-task form is open.
+func (m TasksModel) IsTyping() bool {
+	return m.mode == tasksModeAdd
+}
+
 // GetResults returns task results for stats.
 func (m TasksModel) GetResults() []core.TaskResult {
 	return m.results

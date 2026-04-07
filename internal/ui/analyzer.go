@@ -30,6 +30,7 @@ type AnalyzerModel struct {
 	bodyInput    textarea.Model
 	responseVP   viewport.Model
 	activeField  int
+	typing       bool
 	isLoading    bool
 	spinner      spinner.Model
 	result       *core.Response
@@ -44,7 +45,6 @@ type AnalyzerModel struct {
 func NewAnalyzer() AnalyzerModel {
 	url := textinput.New()
 	url.Placeholder = "https://api.example.com/endpoint"
-	url.Focus()
 	url.CharLimit = 2048
 
 	method := textinput.New()
@@ -162,13 +162,32 @@ func (m AnalyzerModel) Update(msg tea.Msg) (AnalyzerModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
-			m.activeField = (m.activeField + 1) % 4
+			if !m.typing {
+				m.typing = true
+				m.activeField = 0
+			} else {
+				m.activeField = (m.activeField + 1) % 4
+			}
 			m.focusField()
 		case "shift+tab":
-			m.activeField = (m.activeField + 3) % 4
-			m.focusField()
+			if m.typing {
+				m.activeField = (m.activeField + 3) % 4
+				m.focusField()
+			}
+		case "ctrl+s":
+			m.typing = false
+			m.urlInput.Blur()
+			m.methodInput.Blur()
+			m.headersInput.Blur()
+			m.bodyInput.Blur()
+		case "ctrl+r":
+			url := m.urlInput.Value()
+			if url != "" && !m.isLoading {
+				m.isLoading = true
+				cmds = append(cmds, m.runAnalyzer(), m.spinner.Tick)
+			}
 		case "enter", "r":
-			if m.activeField != 2 && m.activeField != 3 { // not in textarea
+			if m.typing && m.activeField != 2 && m.activeField != 3 {
 				url := m.urlInput.Value()
 				if url != "" && !m.isLoading {
 					m.isLoading = true
@@ -176,10 +195,12 @@ func (m AnalyzerModel) Update(msg tea.Msg) (AnalyzerModel, tea.Cmd) {
 				}
 			}
 		case "ctrl+enter":
-			url := m.urlInput.Value()
-			if url != "" && !m.isLoading {
-				m.isLoading = true
-				cmds = append(cmds, m.runAnalyzer(), m.spinner.Tick)
+			if m.typing {
+				url := m.urlInput.Value()
+				if url != "" && !m.isLoading {
+					m.isLoading = true
+					cmds = append(cmds, m.runAnalyzer(), m.spinner.Tick)
+				}
 			}
 		case "g":
 			if m.activeField == 4 {
@@ -192,28 +213,30 @@ func (m AnalyzerModel) Update(msg tea.Msg) (AnalyzerModel, tea.Cmd) {
 		}
 	}
 
-	// Update active field
-	switch m.activeField {
-	case 0:
-		var cmd tea.Cmd
-		m.urlInput, cmd = m.urlInput.Update(msg)
-		cmds = append(cmds, cmd)
-	case 1:
-		var cmd tea.Cmd
-		m.methodInput, cmd = m.methodInput.Update(msg)
-		cmds = append(cmds, cmd)
-	case 2:
-		var cmd tea.Cmd
-		m.headersInput, cmd = m.headersInput.Update(msg)
-		cmds = append(cmds, cmd)
-	case 3:
-		var cmd tea.Cmd
-		m.bodyInput, cmd = m.bodyInput.Update(msg)
-		cmds = append(cmds, cmd)
-	case 4:
-		var cmd tea.Cmd
-		m.responseVP, cmd = m.responseVP.Update(msg)
-		cmds = append(cmds, cmd)
+	// Update active field — only in typing mode
+	if m.typing {
+		switch m.activeField {
+		case 0:
+			var cmd tea.Cmd
+			m.urlInput, cmd = m.urlInput.Update(msg)
+			cmds = append(cmds, cmd)
+		case 1:
+			var cmd tea.Cmd
+			m.methodInput, cmd = m.methodInput.Update(msg)
+			cmds = append(cmds, cmd)
+		case 2:
+			var cmd tea.Cmd
+			m.headersInput, cmd = m.headersInput.Update(msg)
+			cmds = append(cmds, cmd)
+		case 3:
+			var cmd tea.Cmd
+			m.bodyInput, cmd = m.bodyInput.Update(msg)
+			cmds = append(cmds, cmd)
+		case 4:
+			var cmd tea.Cmd
+			m.responseVP, cmd = m.responseVP.Update(msg)
+			cmds = append(cmds, cmd)
+		}
 	}
 
 	return m, tea.Batch(cmds...)
@@ -360,6 +383,11 @@ func (m AnalyzerModel) View(t theme.Theme) string {
 		Padding(1, 2)
 
 	return outerStyle.Render(strings.Join(sections, "\n"))
+}
+
+// IsTyping returns true when in input editing mode.
+func (m AnalyzerModel) IsTyping() bool {
+	return m.typing
 }
 
 // GetResult returns the latest result for app-level stats tracking.

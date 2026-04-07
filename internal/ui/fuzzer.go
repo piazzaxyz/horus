@@ -31,6 +31,7 @@ type FuzzerModel struct {
 	isLoading        bool
 	spinner          spinner.Model
 	activeField      int // 0=url, 1=wordlist, 2=concurrency
+	typing           bool
 	width            int
 	height           int
 	t                theme.Theme
@@ -42,7 +43,6 @@ func NewFuzzer() FuzzerModel {
 	urlIn := textinput.New()
 	urlIn.Placeholder = "https://api.example.com"
 	urlIn.CharLimit = 2048
-	urlIn.Focus()
 
 	wordlistIn := textinput.New()
 	wordlistIn.Placeholder = "custom/path,another/path (leave blank for built-in)"
@@ -91,6 +91,11 @@ func (m *FuzzerModel) SetSize(w, h int) {
 	}
 	m.viewport.Width = contentWidth - 4
 	m.viewport.Height = vpHeight
+}
+
+// IsTyping returns true when in input editing mode.
+func (m FuzzerModel) IsTyping() bool {
+	return m.typing
 }
 
 func (m FuzzerModel) runFuzz() tea.Cmd {
@@ -147,7 +152,13 @@ func (m FuzzerModel) Update(msg tea.Msg) (FuzzerModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
-			m.activeField = (m.activeField + 1) % 3
+			if !m.typing {
+				// Enter typing mode, focus first field
+				m.typing = true
+				m.activeField = 0
+			} else {
+				m.activeField = (m.activeField + 1) % 3
+			}
 			m.urlInput.Blur()
 			m.customWordlist.Blur()
 			m.concurrencyInput.Blur()
@@ -160,26 +171,38 @@ func (m FuzzerModel) Update(msg tea.Msg) (FuzzerModel, tea.Cmd) {
 				m.concurrencyInput.Focus()
 			}
 		case "shift+tab":
-			m.activeField = (m.activeField + 2) % 3
+			if m.typing {
+				m.activeField = (m.activeField + 2) % 3
+				m.urlInput.Blur()
+				m.customWordlist.Blur()
+				m.concurrencyInput.Blur()
+				switch m.activeField {
+				case 0:
+					m.urlInput.Focus()
+				case 1:
+					m.customWordlist.Focus()
+				case 2:
+					m.concurrencyInput.Focus()
+				}
+			}
+		case "ctrl+s":
+			m.typing = false
 			m.urlInput.Blur()
 			m.customWordlist.Blur()
 			m.concurrencyInput.Blur()
-			switch m.activeField {
-			case 0:
-				m.urlInput.Focus()
-			case 1:
-				m.customWordlist.Focus()
-			case 2:
-				m.concurrencyInput.Focus()
+		case "ctrl+r":
+			if !m.isLoading && m.urlInput.Value() != "" {
+				m.isLoading = true
+				m.results = nil
+				m.err = nil
+				cmds = append(cmds, m.runFuzz(), m.spinner.Tick)
 			}
-		case "ctrl+r", "enter":
-			if !m.isLoading {
-				if m.urlInput.Value() != "" {
-					m.isLoading = true
-					m.results = nil
-					m.err = nil
-					cmds = append(cmds, m.runFuzz(), m.spinner.Tick)
-				}
+		case "enter":
+			if m.typing && !m.isLoading && m.urlInput.Value() != "" {
+				m.isLoading = true
+				m.results = nil
+				m.err = nil
+				cmds = append(cmds, m.runFuzz(), m.spinner.Tick)
 			}
 		case "g":
 			m.viewport.GotoTop()
@@ -191,7 +214,7 @@ func (m FuzzerModel) Update(msg tea.Msg) (FuzzerModel, tea.Cmd) {
 			m.viewport.LineUp(1)
 		}
 
-		if !m.isLoading {
+		if m.typing && !m.isLoading {
 			var cmd tea.Cmd
 			switch m.activeField {
 			case 0:
@@ -211,30 +234,32 @@ func (m FuzzerModel) Update(msg tea.Msg) (FuzzerModel, tea.Cmd) {
 }
 
 func (m FuzzerModel) buildResultsContent() string {
+	t := m.t
 	if len(m.results) == 0 {
 		return "No results"
 	}
 	var lines []string
-	found := 0
-	for _, r := range m.results {
-		if r.Found {
-			found++
-		}
-	}
-	lines = append(lines, fmt.Sprintf("Probed: %d paths, Found: %d", len(m.results), found))
+
+	headerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(t.Muted)).Bold(true)
+	lines = append(lines, headerStyle.Render(fmt.Sprintf("  %-6s  %-8s  %-10s  Path", "HTTP", "Size", "Duration")))
 	lines = append(lines, strings.Repeat("─", 60))
 
 	for _, r := range m.results {
 		if !r.Found {
 			continue
 		}
-		line := fmt.Sprintf("HTTP %-3d  %-8d bytes  %-10s  %s",
-			r.StatusCode,
-			r.Size,
-			r.Duration.Round(1000000).String(),
-			r.Path,
-		)
-		lines = append(lines, line)
+		codeColor := statusColor(r.StatusCode, t)
+		codeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(codeColor)).Bold(true)
+		rest := lipgloss.NewStyle().Foreground(lipgloss.Color(t.Foreground)).Render(
+			fmt.Sprintf("  %-8d  %-10s  %s",
+				r.Size,
+				r.Duration.Round(1000000).String(),
+				r.Path,
+			))
+		lines = append(lines, lipgloss.JoinHorizontal(lipgloss.Top,
+			codeStyle.Render(fmt.Sprintf("  %-6d", r.StatusCode)),
+			rest,
+		))
 	}
 
 	return strings.Join(lines, "\n")
@@ -294,7 +319,11 @@ func (m FuzzerModel) View(t theme.Theme) string {
 		return outerStyle.Render(strings.Join(sections, "\n"))
 	}
 
-	sections = append(sections, mutedStyle.Render("Press r or Enter to run"))
+	if m.typing {
+		sections = append(sections, mutedStyle.Render("ctrl+r: run  ctrl+s: exit input mode"))
+	} else {
+		sections = append(sections, mutedStyle.Render("Tab: enter input mode  ctrl+r: run"))
+	}
 	sections = append(sections, "")
 
 	if m.err != nil {
@@ -315,26 +344,13 @@ func (m FuzzerModel) View(t theme.Theme) string {
 		sections = append(sections, titleStyle.Render(fmt.Sprintf("Paths Found: %d / %d probed", found, len(m.results))))
 		sections = append(sections, renderDivider(contentWidth-4, t))
 
-		// Header
-		headerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(t.Muted)).Bold(true)
-		sections = append(sections, headerStyle.Render(fmt.Sprintf("  %-6s  %-8s  %-10s  Path", "HTTP", "Size", "Duration")))
-
-		for _, r := range m.results {
-			if !r.Found {
-				continue
-			}
-			codeColor := statusColor(r.StatusCode, t)
-			codeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(codeColor)).Bold(true)
-			line := fmt.Sprintf("  %-8d  %-10s  %s",
-				r.Size,
-				r.Duration.Round(1000000).String(),
-				r.Path,
-			)
-			sections = append(sections, lipgloss.JoinHorizontal(lipgloss.Top,
-				codeStyle.Render(fmt.Sprintf("  %-6d", r.StatusCode)),
-				lipgloss.NewStyle().Foreground(lipgloss.Color(t.Foreground)).Render(line),
-			))
-		}
+		// Render results inside the bounded viewport (prevents overflow)
+		vpStyle := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color(t.Border)).
+			Width(contentWidth - 4)
+		sections = append(sections, vpStyle.Render(m.viewport.View()))
+		sections = append(sections, lipgloss.NewStyle().Foreground(lipgloss.Color(t.Muted)).Render("  j/k: scroll  g/G: top/bottom"))
 	}
 
 	outerStyle := lipgloss.NewStyle().Width(contentWidth).Padding(1, 2)
