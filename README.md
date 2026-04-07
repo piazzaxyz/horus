@@ -2,37 +2,7 @@
 
 > A terminal-based QA & security auditing toolkit — HTTP analysis, data leak detection, injection testing, fuzzing, port scanning, JWT analysis, CORS testing and more, all in one fast TUI.
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  𓂀 HORUS v1.0.0  [Tokyo Night]                           ● Connected   │
-├──────────────────────┬──────────────────────────────────────────────────┤
-│                      │                                                  │
-│  QA / TESTING        │   Dashboard                                      │
-│  ────────────────    │                                                  │
-│  ● [1] Dashboard     │   ┌─────────────┐  ┌─────────────┐             │
-│  ○ [2] HTTP Analyzer │   │ Tasks Run   │  │ Leaks Found │             │
-│  ○ [3] Task Runner   │   │     42      │  │      3      │             │
-│  ○ [4] Leak Scanner  │   └─────────────┘  └─────────────┘             │
-│  ○ [5] Throttle Det. │                                                  │
-│  ○ [6] Security Scan │   ┌─────────────┐  ┌─────────────┐             │
-│                      │   │  Avg. Time  │  │  Security   │             │
-│  CYBER / PENTEST     │   │   145ms     │  │  Issues: 7  │             │
-│  ────────────────    │   └─────────────┘  └─────────────┘             │
-│  ○ [7] Injection     │                                                  │
-│  ○ [8] Fuzzer        │   Recent Activity                                │
-│  ○ [9] Port Scanner  │   ✓ GET /api/users     200  142ms               │
-│  ○ [0] JWT Analyzer  │   ✗ POST /api/auth     401   89ms  [LEAK]       │
-│  ○ [-] CORS Tester   │   ⚠ GET /api/data      200 1204ms  [SLOW]       │
-│  ○ [=] Auth / IDOR   │                                                  │
-│                      │                                                  │
-│  SETTINGS            │                                                  │
-│  ────────────────    │                                                  │
-│  ○ [T] Themes        │                                                  │
-│  ○     Tutorial      │                                                  │
-├──────────────────────┴──────────────────────────────────────────────────┤
-│  q:quit  ?:help  ctrl+t:theme  ctrl+r:run  1-9,0,-,=:views  Tab:focus  │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+<img width="1914" height="989" alt="image" src="https://github.com/user-attachments/assets/8f97a7e8-7fd3-45f1-975c-f97322aa42c9" />
 
 ---
 
