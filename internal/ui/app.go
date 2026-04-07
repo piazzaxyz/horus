@@ -12,7 +12,7 @@ import (
 	"github.com/agromai/qaitor/internal/theme"
 )
 
-// App is the root Bubbletea model for QAITOR.
+// App is the root Bubbletea model for HORUS.
 type App struct {
 	currentPage     core.Page
 	width           int
@@ -34,6 +34,12 @@ type App struct {
 	leaks     LeaksModel
 	throttle  ThrottleModel
 	security  SecurityModel
+	injection InjectionModel
+	fuzzer    FuzzerModel
+	portScan  PortScanModel
+	jwt       JWTModel
+	cors      CORSModel
+	auth      AuthModel
 	themes    ThemesModel
 	tutorial  TutorialModel
 }
@@ -58,6 +64,24 @@ func New() *App {
 	security := NewSecurity()
 	security.SetTheme(t)
 
+	injection := NewInjection()
+	injection.SetTheme(t)
+
+	fuzzer := NewFuzzer()
+	fuzzer.SetTheme(t)
+
+	portScan := NewPortScan()
+	portScan.SetTheme(t)
+
+	jwt := NewJWT()
+	jwt.SetTheme(t)
+
+	cors := NewCORS()
+	cors.SetTheme(t)
+
+	auth := NewAuth()
+	auth.SetTheme(t)
+
 	themes := NewThemes()
 	themes.SetTheme(t)
 
@@ -71,11 +95,17 @@ func New() *App {
 		leaks:       leaks,
 		throttle:    throttle,
 		security:    security,
+		injection:   injection,
+		fuzzer:      fuzzer,
+		portScan:    portScan,
+		jwt:         jwt,
+		cors:        cors,
+		auth:        auth,
 		themes:      themes,
 		tutorial:    NewTutorial(),
 	}
 
-	app.addLog("INFO", "QAITOR started. Press ? for help, 8 for tutorial.")
+	app.addLog("INFO", "HORUS started. Press ? for help.")
 	return app
 }
 
@@ -131,10 +161,25 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.currentPage = core.PageSecurity
 			return a, nil
 		case "7":
-			a.currentPage = core.PageThemes
+			a.currentPage = core.PageInjection
 			return a, nil
 		case "8":
-			a.currentPage = core.PageTutorial
+			a.currentPage = core.PageFuzzer
+			return a, nil
+		case "9":
+			a.currentPage = core.PagePortScan
+			return a, nil
+		case "0":
+			a.currentPage = core.PageJWT
+			return a, nil
+		case "-":
+			a.currentPage = core.PageCORS
+			return a, nil
+		case "=":
+			a.currentPage = core.PageAuth
+			return a, nil
+		case "T":
+			a.currentPage = core.PageThemes
 			return a, nil
 		case "t":
 			a.cycleTheme()
@@ -167,7 +212,6 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else if msg.resp != nil && msg.resp.Error != nil {
 			a.addLog("ERROR", fmt.Sprintf("Request failed: %v", msg.resp.Error))
 		}
-		// Also delegate to analyzer
 		var newAnalyzer AnalyzerModel
 		var cmd tea.Cmd
 		newAnalyzer, cmd = a.analyzer.Update(msg)
@@ -252,12 +296,131 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 
+	case injectionRunMsg:
+		if msg.err == nil {
+			vulns := 0
+			for _, r := range msg.results {
+				if r.Vulnerable {
+					vulns++
+				}
+			}
+			a.totalRequests += len(msg.results)
+			a.totalIssues += vulns
+			a.addLog("INFO", fmt.Sprintf("Injection test: %d payloads, %d vulnerable", len(msg.results), vulns))
+		} else {
+			a.addLog("ERROR", fmt.Sprintf("Injection test failed: %v", msg.err))
+		}
+		var newInjection InjectionModel
+		var cmd tea.Cmd
+		newInjection, cmd = a.injection.Update(msg)
+		a.injection = newInjection
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+	case fuzzerRunMsg:
+		if msg.err == nil {
+			found := 0
+			for _, r := range msg.results {
+				if r.Found {
+					found++
+				}
+			}
+			a.totalRequests += len(msg.results)
+			a.addLog("INFO", fmt.Sprintf("Fuzzer: %d paths probed, %d found", len(msg.results), found))
+		} else {
+			a.addLog("ERROR", fmt.Sprintf("Fuzzer failed: %v", msg.err))
+		}
+		var newFuzzer FuzzerModel
+		var cmd tea.Cmd
+		newFuzzer, cmd = a.fuzzer.Update(msg)
+		a.fuzzer = newFuzzer
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+	case portScanRunMsg:
+		if msg.err == nil {
+			a.totalRequests += len(msg.results)
+			a.addLog("INFO", fmt.Sprintf("Port scan %s: %d open ports", msg.host, len(msg.results)))
+		} else {
+			a.addLog("ERROR", fmt.Sprintf("Port scan failed: %v", msg.err))
+		}
+		var newPortScan PortScanModel
+		var cmd tea.Cmd
+		newPortScan, cmd = a.portScan.Update(msg)
+		a.portScan = newPortScan
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+	case corsRunMsg:
+		if msg.err == nil {
+			vulns := 0
+			for _, r := range msg.results {
+				if r.Vulnerable {
+					vulns++
+				}
+			}
+			a.totalRequests += len(msg.results)
+			a.totalIssues += vulns
+			a.addLog("INFO", fmt.Sprintf("CORS test: %d tests, %d vulnerable", len(msg.results), vulns))
+		} else {
+			a.addLog("ERROR", fmt.Sprintf("CORS test failed: %v", msg.err))
+		}
+		var newCORS CORSModel
+		var cmd tea.Cmd
+		newCORS, cmd = a.cors.Update(msg)
+		a.cors = newCORS
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+	case idorRunMsg:
+		if msg.err == nil {
+			accessible := 0
+			for _, r := range msg.results {
+				if r.Accessible {
+					accessible++
+				}
+			}
+			a.totalRequests += len(msg.results)
+			a.totalIssues += accessible
+			a.addLog("INFO", fmt.Sprintf("IDOR probe: %d IDs, %d accessible", len(msg.results), accessible))
+		} else {
+			a.addLog("ERROR", fmt.Sprintf("IDOR probe failed: %v", msg.err))
+		}
+		var newAuth AuthModel
+		var cmd tea.Cmd
+		newAuth, cmd = a.auth.Update(msg)
+		a.auth = newAuth
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+	case bypassRunMsg:
+		if msg.err == nil {
+			a.totalRequests++
+			if len(msg.results) > 0 {
+				a.totalIssues++
+			}
+			a.addLog("INFO", fmt.Sprintf("Rate limit bypass: %d techniques found", len(msg.results)))
+		} else {
+			a.addLog("ERROR", fmt.Sprintf("Bypass test failed: %v", msg.err))
+		}
+		var newAuth AuthModel
+		var cmd tea.Cmd
+		newAuth, cmd = a.auth.Update(msg)
+		a.auth = newAuth
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
 	case themeSelectMsg:
 		a.themeName = msg.name
 		a.t = theme.Get(msg.name)
 		a.applyTheme()
 		a.addLog("INFO", fmt.Sprintf("Theme changed to: %s", msg.name))
-		// delegate to themes model
 		var newThemes ThemesModel
 		var cmd tea.Cmd
 		newThemes, cmd = a.themes.Update(msg)
@@ -299,6 +462,30 @@ func (a *App) delegateKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		newSecurity, cmd := a.security.Update(msg)
 		a.security = newSecurity
 		return cmd
+	case core.PageInjection:
+		newInjection, cmd := a.injection.Update(msg)
+		a.injection = newInjection
+		return cmd
+	case core.PageFuzzer:
+		newFuzzer, cmd := a.fuzzer.Update(msg)
+		a.fuzzer = newFuzzer
+		return cmd
+	case core.PagePortScan:
+		newPortScan, cmd := a.portScan.Update(msg)
+		a.portScan = newPortScan
+		return cmd
+	case core.PageJWT:
+		newJWT, cmd := a.jwt.Update(msg)
+		a.jwt = newJWT
+		return cmd
+	case core.PageCORS:
+		newCORS, cmd := a.cors.Update(msg)
+		a.cors = newCORS
+		return cmd
+	case core.PageAuth:
+		newAuth, cmd := a.auth.Update(msg)
+		a.auth = newAuth
+		return cmd
 	case core.PageThemes:
 		newThemes, cmd := a.themes.Update(msg)
 		a.themes = newThemes
@@ -332,6 +519,30 @@ func (a *App) delegateToCurrentView(msg tea.Msg) tea.Cmd {
 	case core.PageSecurity:
 		newSecurity, cmd := a.security.Update(msg)
 		a.security = newSecurity
+		return cmd
+	case core.PageInjection:
+		newInjection, cmd := a.injection.Update(msg)
+		a.injection = newInjection
+		return cmd
+	case core.PageFuzzer:
+		newFuzzer, cmd := a.fuzzer.Update(msg)
+		a.fuzzer = newFuzzer
+		return cmd
+	case core.PagePortScan:
+		newPortScan, cmd := a.portScan.Update(msg)
+		a.portScan = newPortScan
+		return cmd
+	case core.PageJWT:
+		newJWT, cmd := a.jwt.Update(msg)
+		a.jwt = newJWT
+		return cmd
+	case core.PageCORS:
+		newCORS, cmd := a.cors.Update(msg)
+		a.cors = newCORS
+		return cmd
+	case core.PageAuth:
+		newAuth, cmd := a.auth.Update(msg)
+		a.auth = newAuth
 		return cmd
 	case core.PageThemes:
 		newThemes, cmd := a.themes.Update(msg)
@@ -374,6 +585,18 @@ func (a *App) View() string {
 		content = a.throttle.View(a.t)
 	case core.PageSecurity:
 		content = a.security.View(a.t)
+	case core.PageInjection:
+		content = a.injection.View(a.t)
+	case core.PageFuzzer:
+		content = a.fuzzer.View(a.t)
+	case core.PagePortScan:
+		content = a.portScan.View(a.t)
+	case core.PageJWT:
+		content = a.jwt.View(a.t)
+	case core.PageCORS:
+		content = a.cors.View(a.t)
+	case core.PageAuth:
+		content = a.auth.View(a.t)
 	case core.PageThemes:
 		content = a.themes.View(a.t)
 	case core.PageTutorial:
@@ -406,6 +629,12 @@ func (a *App) applyTheme() {
 	a.leaks.SetTheme(a.t)
 	a.throttle.SetTheme(a.t)
 	a.security.SetTheme(a.t)
+	a.injection.SetTheme(a.t)
+	a.fuzzer.SetTheme(a.t)
+	a.portScan.SetTheme(a.t)
+	a.jwt.SetTheme(a.t)
+	a.cors.SetTheme(a.t)
+	a.auth.SetTheme(a.t)
 	a.themes.SetTheme(a.t)
 }
 
@@ -415,6 +644,12 @@ func (a *App) resizeAll() {
 	a.leaks.SetSize(a.width, a.height)
 	a.throttle.SetSize(a.width, a.height)
 	a.security.SetSize(a.width, a.height)
+	a.injection.SetSize(a.width, a.height)
+	a.fuzzer.SetSize(a.width, a.height)
+	a.portScan.SetSize(a.width, a.height)
+	a.jwt.SetSize(a.width, a.height)
+	a.cors.SetSize(a.width, a.height)
+	a.auth.SetSize(a.width, a.height)
 	a.themes.SetSize(a.width, a.height)
 	a.tutorial.SetSize(a.width, a.height)
 }

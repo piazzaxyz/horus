@@ -13,7 +13,7 @@ import (
 const (
 	sidebarWidth = 22
 	appVersion   = "v1.0.0"
-	appName      = "QAITOR"
+	appName      = "HORUS"
 )
 
 func renderHeader(width int, themeName string, t theme.Theme) string {
@@ -32,19 +32,33 @@ func renderHeader(width int, themeName string, t theme.Theme) string {
 }
 
 func renderSidebar(current core.Page, height int, t theme.Theme) string {
-	menuItems := []struct {
+	type menuItem struct {
 		page  core.Page
 		label string
 		key   string
-	}{
+	}
+
+	qaItems := []menuItem{
 		{core.PageDashboard, "Dashboard", "1"},
 		{core.PageAnalyzer, "HTTP Analyzer", "2"},
 		{core.PageTasks, "Task Runner", "3"},
 		{core.PageLeaks, "Leak Scanner", "4"},
 		{core.PageThrottle, "Throttle Det.", "5"},
 		{core.PageSecurity, "Security Scan", "6"},
-		{core.PageThemes, "Theme Picker", "7"},
-		{core.PageTutorial, "Tutorial", "8"},
+	}
+
+	cyberItems := []menuItem{
+		{core.PageInjection, "Injection", "7"},
+		{core.PageFuzzer, "Fuzzer", "8"},
+		{core.PagePortScan, "Port Scanner", "9"},
+		{core.PageJWT, "JWT Analyzer", "0"},
+		{core.PageCORS, "CORS Tester", "-"},
+		{core.PageAuth, "Auth / IDOR", "="},
+	}
+
+	settingsItems := []menuItem{
+		{core.PageThemes, "Themes", "T"},
+		{core.PageTutorial, "Tutorial", ""},
 	}
 
 	activeStyle := lipgloss.NewStyle().
@@ -58,28 +72,57 @@ func renderSidebar(current core.Page, height int, t theme.Theme) string {
 		Width(sidebarWidth - 2).
 		Padding(0, 1)
 
-	var items []string
-	// Title
 	titleStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(t.Primary)).
 		Bold(true).
 		Width(sidebarWidth - 2).
 		Padding(0, 1)
-	items = append(items, titleStyle.Render("  VIEWS"))
-	items = append(items, lipgloss.NewStyle().Foreground(lipgloss.Color(t.Border)).Width(sidebarWidth-2).Render(strings.Repeat("─", sidebarWidth-4)))
+	divStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color(t.Border)).
+		Width(sidebarWidth - 2)
 
-	for _, item := range menuItems {
+	renderItem := func(item menuItem) string {
 		indicator := "○"
 		if item.page == current {
 			indicator = "●"
 		}
-		label := fmt.Sprintf("%s [%s] %s", indicator, item.key, item.label)
-
-		if item.page == current {
-			items = append(items, activeStyle.Render(label))
+		var label string
+		if item.key != "" {
+			label = fmt.Sprintf("%s [%s] %s", indicator, item.key, item.label)
 		} else {
-			items = append(items, inactiveStyle.Render(label))
+			label = fmt.Sprintf("%s     %s", indicator, item.label)
 		}
+		if item.page == current {
+			return activeStyle.Render(label)
+		}
+		return inactiveStyle.Render(label)
+	}
+
+	var items []string
+
+	// QA / TESTING group
+	items = append(items, titleStyle.Render("  QA / TESTING"))
+	items = append(items, divStyle.Render(strings.Repeat("─", sidebarWidth-4)))
+	for _, item := range qaItems {
+		items = append(items, renderItem(item))
+	}
+
+	items = append(items, divStyle.Render(""))
+
+	// CYBER / PENTEST group
+	items = append(items, titleStyle.Render("  CYBER / PENTEST"))
+	items = append(items, divStyle.Render(strings.Repeat("─", sidebarWidth-4)))
+	for _, item := range cyberItems {
+		items = append(items, renderItem(item))
+	}
+
+	items = append(items, divStyle.Render(""))
+
+	// SETTINGS group
+	items = append(items, titleStyle.Render("  SETTINGS"))
+	items = append(items, divStyle.Render(strings.Repeat("─", sidebarWidth-4)))
+	for _, item := range settingsItems {
+		items = append(items, renderItem(item))
 	}
 
 	// Fill remaining space
@@ -106,7 +149,7 @@ func renderFooter(current core.Page, width int, t theme.Theme) string {
 		Padding(0, 1)
 
 	pageName := core.PageNames[current]
-	keys := "q:quit  ?:help  t:theme  1-8:views  r:run  Tab:focus"
+	keys := "q:quit  ?:help  t:theme  1-9,0,-,=:views  T:themes  r:run  Tab:focus"
 	spacer := strings.Repeat(" ", max(0, width-len(pageName)-len(keys)-4))
 
 	return style.Render(fmt.Sprintf(" %s%s%s ", pageName, spacer, keys))
@@ -134,11 +177,18 @@ func renderHelp(width, height int, t theme.Theme) string {
 
 	help := [][]string{
 		{"Navigation", ""},
-		{"1-8", "Switch to view by number"},
+		{"1-6", "QA/Testing views"},
+		{"7", "Injection Tester"},
+		{"8", "Fuzzer"},
+		{"9", "Port Scanner"},
+		{"0", "JWT Analyzer"},
+		{"-", "CORS Tester"},
+		{"=", "Auth / IDOR"},
+		{"T", "Theme Picker"},
+		{"", ""},
+		{"Movement", ""},
 		{"j / ↓", "Move down"},
 		{"k / ↑", "Move up"},
-		{"h / ←", "Move left / previous"},
-		{"l / →", "Move right / next"},
 		{"g", "Go to top"},
 		{"G", "Go to bottom"},
 		{"", ""},
@@ -146,16 +196,17 @@ func renderHelp(width, height int, t theme.Theme) string {
 		{"r / Enter", "Run / Execute"},
 		{"Tab", "Focus next input field"},
 		{"Shift+Tab", "Focus previous input field"},
+		{"[ / ]", "Cycle type / mode"},
 		{"Esc", "Cancel / Go back"},
 		{"", ""},
 		{"Global", ""},
-		{"q", "Quit QAITOR"},
+		{"q", "Quit HORUS"},
 		{"?", "Toggle this help overlay"},
 		{"t", "Cycle to next theme"},
 	}
 
 	var lines []string
-	lines = append(lines, titleStyle.Render("QAITOR Keyboard Reference"))
+	lines = append(lines, titleStyle.Render("HORUS Keyboard Reference"))
 	lines = append(lines, "")
 
 	for _, row := range help {

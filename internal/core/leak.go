@@ -89,6 +89,55 @@ var leakPatterns = []leakPattern{
 		pattern:  regexp.MustCompile(`(?i)(?:mongodb|mysql|postgres|postgresql|redis|mssql):\/\/[^\s"']+`),
 		severity: SeverityCritical,
 	},
+	// ENV variable leaks
+	{
+		name:     "ENV: Database URL",
+		pattern:  regexp.MustCompile(`(?i)(DATABASE_URL|DB_URL|POSTGRES_URL|MYSQL_URL)\s*[=:]\s*[^\s"']+`),
+		severity: SeverityCritical,
+	},
+	{
+		name:     "ENV: Secret Key",
+		pattern:  regexp.MustCompile(`(?i)(SECRET_KEY|APP_SECRET|APP_KEY|ENCRYPTION_KEY)\s*[=:]\s*[^\s"']{8,}`),
+		severity: SeverityCritical,
+	},
+	{
+		name:     "ENV: API Secret",
+		pattern:  regexp.MustCompile(`(?i)(API_SECRET|CLIENT_SECRET|OAUTH_SECRET)\s*[=:]\s*[^\s"']{8,}`),
+		severity: SeverityHigh,
+	},
+	// Path traversal evidence in responses
+	{
+		name:     "Path Traversal: Unix Passwd",
+		pattern:  regexp.MustCompile(`root:x:\d+:\d+:`),
+		severity: SeverityCritical,
+	},
+	{
+		name:     "Path Traversal: Win.ini",
+		pattern:  regexp.MustCompile(`\[boot loader\]|\[fonts\]|\[extensions\]`),
+		severity: SeverityCritical,
+	},
+	// Stack traces
+	{
+		name:     "Stack Trace (Java)",
+		pattern:  regexp.MustCompile(`at [a-zA-Z_$][a-zA-Z0-9_$]*\.[a-zA-Z_$][a-zA-Z0-9_$]*\(.*\.java:\d+\)`),
+		severity: SeverityHigh,
+	},
+	{
+		name:     "Stack Trace (Python)",
+		pattern:  regexp.MustCompile(`Traceback \(most recent call last\)`),
+		severity: SeverityHigh,
+	},
+	{
+		name:     "Stack Trace (PHP)",
+		pattern:  regexp.MustCompile(`Fatal error:.*on line \d+`),
+		severity: SeverityHigh,
+	},
+	// Debug info
+	{
+		name:     "Debug Mode Active",
+		pattern:  regexp.MustCompile(`(?i)(debug\s*=\s*true|APP_DEBUG\s*=\s*true|DEBUG_MODE\s*=\s*1)`),
+		severity: SeverityHigh,
+	},
 }
 
 // ScanForLeaks scans the given text for data leaks and returns all findings.

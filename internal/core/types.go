@@ -12,6 +12,12 @@ const (
 	PageLeaks
 	PageThrottle
 	PageSecurity
+	PageInjection // NEW
+	PageFuzzer    // NEW
+	PagePortScan  // NEW
+	PageJWT       // NEW
+	PageCORS      // NEW
+	PageAuth      // NEW
 	PageThemes
 	PageTutorial
 )
@@ -24,6 +30,12 @@ var PageNames = map[Page]string{
 	PageLeaks:     "Leak Scanner",
 	PageThrottle:  "Throttle Detector",
 	PageSecurity:  "Security Scanner",
+	PageInjection: "Injection Tester",
+	PageFuzzer:    "Fuzzer",
+	PagePortScan:  "Port Scanner",
+	PageJWT:       "JWT Analyzer",
+	PageCORS:      "CORS Tester",
+	PageAuth:      "Auth / IDOR",
 	PageThemes:    "Theme Picker",
 	PageTutorial:  "Tutorial",
 }
@@ -36,6 +48,12 @@ var PageIcons = map[Page]string{
 	PageLeaks:     "⬛",
 	PageThrottle:  "⬛",
 	PageSecurity:  "⬛",
+	PageInjection: "⬛",
+	PageFuzzer:    "⬛",
+	PagePortScan:  "⬛",
+	PageJWT:       "⬛",
+	PageCORS:      "⬛",
+	PageAuth:      "⬛",
 	PageThemes:    "⬛",
 	PageTutorial:  "⬛",
 }
@@ -113,12 +131,12 @@ type DataLeak struct {
 
 // ThrottleResult holds the result of a single request in throttle detection.
 type ThrottleResult struct {
-	RequestNum  int
-	StatusCode  int
-	Duration    time.Duration
-	Throttled   bool
-	RetryAfter  string
-	Error       error
+	RequestNum int
+	StatusCode int
+	Duration   time.Duration
+	Throttled  bool
+	RetryAfter string
+	Error      error
 }
 
 // SecurityIssue represents a security finding from header/TLS analysis.
@@ -146,4 +164,96 @@ func NewLogEntry(level, message string) LogEntry {
 		Level:     level,
 		Message:   message,
 	}
+}
+
+// InjectionType categorizes injection attack types.
+type InjectionType int
+
+const (
+	InjectionSQLi InjectionType = iota
+	InjectionXSS
+	InjectionSSTI
+	InjectionPathTraversal
+	InjectionCmdInjection
+)
+
+func (t InjectionType) String() string {
+	switch t {
+	case InjectionSQLi:
+		return "SQLi"
+	case InjectionXSS:
+		return "XSS"
+	case InjectionSSTI:
+		return "SSTI"
+	case InjectionPathTraversal:
+		return "PathTraversal"
+	case InjectionCmdInjection:
+		return "CmdInjection"
+	default:
+		return "Unknown"
+	}
+}
+
+// InjectionResult holds the result of a single injection test.
+type InjectionResult struct {
+	Payload    string
+	Type       InjectionType
+	Parameter  string
+	StatusCode int
+	Duration   time.Duration
+	Vulnerable bool
+	Evidence   string
+	Confidence string // "LOW", "MEDIUM", "HIGH"
+}
+
+// FuzzResult holds the result of a single fuzzing attempt.
+type FuzzResult struct {
+	Path       string
+	StatusCode int
+	Size       int
+	Duration   time.Duration
+	Found      bool
+}
+
+// PortResult holds the result of scanning a single port.
+type PortResult struct {
+	Port     int
+	Open     bool
+	Service  string
+	Banner   string
+	Duration time.Duration
+}
+
+// JWTAnalysis holds the decoded JWT and vulnerability findings.
+type JWTAnalysis struct {
+	Raw             string
+	Header          map[string]interface{}
+	Payload         map[string]interface{}
+	Algorithm       string
+	IsExpired       bool
+	ExpiresAt       *time.Time
+	IssuedAt        *time.Time
+	Vulnerabilities []string
+	Valid            bool
+}
+
+// CORSResult holds the result of a CORS misconfiguration test.
+type CORSResult struct {
+	TestedOrigin     string
+	AllowedOrigin    string
+	AllowCredentials bool
+	AllowMethods     string
+	AllowHeaders     string
+	Vulnerable       bool
+	VulnType         string
+}
+
+// IDORResult holds the result of a single IDOR probe.
+type IDORResult struct {
+	ID         string
+	StatusCode int
+	Size       int
+	Duration   time.Duration
+	Accessible bool
+	Baseline   int // baseline response size
 }
