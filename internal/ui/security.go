@@ -20,13 +20,14 @@ type securityRunMsg struct {
 
 // SecurityModel is the Security Scanner view.
 type SecurityModel struct {
-	urlInput    textinput.Model
-	result      *core.SecurityCheckResult
-	isLoading   bool
-	spinner     spinner.Model
-	width       int
-	height      int
-	t           theme.Theme
+	urlInput     textinput.Model
+	result       *core.SecurityCheckResult
+	isLoading    bool
+	spinner      spinner.Model
+	typing       bool
+	width        int
+	height       int
+	t            theme.Theme
 	scrollOffset int
 }
 
@@ -35,7 +36,6 @@ func NewSecurity() SecurityModel {
 	url := textinput.New()
 	url.Placeholder = "https://example.com"
 	url.CharLimit = 2048
-	url.Focus()
 
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
@@ -63,10 +63,7 @@ func (m *SecurityModel) SetSize(w, h int) {
 	m.urlInput.Width = contentWidth - 4
 }
 
-// IsTyping returns true when the URL input is focused (always, as it's the only input).
-func (m SecurityModel) IsTyping() bool {
-	return true
-}
+func (m SecurityModel) IsTyping() bool { return m.typing }
 
 // runSecurity executes the security scan.
 func (m SecurityModel) runSecurity() tea.Cmd {
@@ -100,12 +97,29 @@ func (m SecurityModel) Update(msg tea.Msg) (SecurityModel, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+r", "enter":
+		case "tab":
+			if !m.typing {
+				m.typing = true
+				m.urlInput.Focus()
+			}
+		case "ctrl+s":
+			m.typing = false
+			m.urlInput.Blur()
+		case "ctrl+r":
 			url := m.urlInput.Value()
 			if url != "" && !m.isLoading {
 				m.isLoading = true
 				m.result = nil
 				cmds = append(cmds, m.runSecurity(), m.spinner.Tick)
+			}
+		case "enter":
+			if m.typing {
+				url := m.urlInput.Value()
+				if url != "" && !m.isLoading {
+					m.isLoading = true
+					m.result = nil
+					cmds = append(cmds, m.runSecurity(), m.spinner.Tick)
+				}
 			}
 		case "j", "down":
 			if m.result != nil {
@@ -122,9 +136,11 @@ func (m SecurityModel) Update(msg tea.Msg) (SecurityModel, tea.Cmd) {
 				m.scrollOffset = max(0, len(m.result.Issues)-5)
 			}
 		default:
-			var cmd tea.Cmd
-			m.urlInput, cmd = m.urlInput.Update(msg)
-			cmds = append(cmds, cmd)
+			if m.typing {
+				var cmd tea.Cmd
+				m.urlInput, cmd = m.urlInput.Update(msg)
+				cmds = append(cmds, cmd)
+			}
 		}
 	}
 

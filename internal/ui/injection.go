@@ -30,6 +30,7 @@ type InjectionModel struct {
 	isLoading   bool
 	spinner     spinner.Model
 	activeField int // 0=url, 1=param
+	typing      bool
 	width       int
 	height      int
 	t           theme.Theme
@@ -41,7 +42,6 @@ func NewInjection() InjectionModel {
 	urlIn := textinput.New()
 	urlIn.Placeholder = "https://api.example.com/search"
 	urlIn.CharLimit = 2048
-	urlIn.Focus()
 
 	paramIn := textinput.New()
 	paramIn.Placeholder = "q"
@@ -86,9 +86,9 @@ func (m *InjectionModel) SetSize(w, h int) {
 	m.viewport.Height = vpHeight
 }
 
-// IsTyping returns true when a text input is focused.
+// IsTyping returns true when in input editing mode.
 func (m InjectionModel) IsTyping() bool {
-	return m.activeField < 2 // 0=url, 1=param — both are text inputs
+	return m.typing
 }
 
 func (m InjectionModel) runInjection() tea.Cmd {
@@ -132,23 +132,36 @@ func (m InjectionModel) Update(msg tea.Msg) (InjectionModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
-			m.activeField = (m.activeField + 1) % 2
-			if m.activeField == 0 {
+			if !m.typing {
+				m.typing = true
+				m.activeField = 0
 				m.urlInput.Focus()
 				m.paramInput.Blur()
 			} else {
-				m.urlInput.Blur()
-				m.paramInput.Focus()
+				m.activeField = (m.activeField + 1) % 2
+				if m.activeField == 0 {
+					m.urlInput.Focus()
+					m.paramInput.Blur()
+				} else {
+					m.urlInput.Blur()
+					m.paramInput.Focus()
+				}
 			}
 		case "shift+tab":
-			m.activeField = (m.activeField + 1) % 2
-			if m.activeField == 0 {
-				m.urlInput.Focus()
-				m.paramInput.Blur()
-			} else {
-				m.urlInput.Blur()
-				m.paramInput.Focus()
+			if m.typing {
+				m.activeField = (m.activeField + 1) % 2
+				if m.activeField == 0 {
+					m.urlInput.Focus()
+					m.paramInput.Blur()
+				} else {
+					m.urlInput.Blur()
+					m.paramInput.Focus()
+				}
 			}
+		case "ctrl+s":
+			m.typing = false
+			m.urlInput.Blur()
+			m.paramInput.Blur()
 		case "[":
 			// Cycle injection type backwards
 			if m.injType > core.InjectionSQLi {
@@ -163,14 +176,19 @@ func (m InjectionModel) Update(msg tea.Msg) (InjectionModel, tea.Cmd) {
 			} else {
 				m.injType = core.InjectionSQLi
 			}
-		case "ctrl+r", "enter":
-			if !m.isLoading {
-				if m.urlInput.Value() != "" {
-					m.isLoading = true
-					m.results = nil
-					m.err = nil
-					cmds = append(cmds, m.runInjection(), m.spinner.Tick)
-				}
+		case "ctrl+r":
+			if !m.isLoading && m.urlInput.Value() != "" {
+				m.isLoading = true
+				m.results = nil
+				m.err = nil
+				cmds = append(cmds, m.runInjection(), m.spinner.Tick)
+			}
+		case "enter":
+			if m.typing && !m.isLoading && m.urlInput.Value() != "" {
+				m.isLoading = true
+				m.results = nil
+				m.err = nil
+				cmds = append(cmds, m.runInjection(), m.spinner.Tick)
 			}
 		case "g":
 			m.viewport.GotoTop()
@@ -182,7 +200,7 @@ func (m InjectionModel) Update(msg tea.Msg) (InjectionModel, tea.Cmd) {
 			m.viewport.LineUp(1)
 		}
 
-		if !m.isLoading {
+		if m.typing && !m.isLoading {
 			var cmd tea.Cmd
 			if m.activeField == 0 {
 				m.urlInput, cmd = m.urlInput.Update(msg)

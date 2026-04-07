@@ -20,6 +20,7 @@ type JWTModel struct {
 	analysis    *core.JWTAnalysis
 	resultVP    viewport.Model
 	activeField int // 0=input
+	typing      bool
 	width       int
 	height      int
 	t           theme.Theme
@@ -33,7 +34,6 @@ func NewJWT() JWTModel {
 	ta.CharLimit = 8192
 	ta.SetWidth(80)
 	ta.SetHeight(4)
-	ta.Focus()
 
 	vp := viewport.New(80, 10)
 
@@ -66,9 +66,9 @@ func (m *JWTModel) SetSize(w, h int) {
 	m.resultVP.Height = vpHeight
 }
 
-// IsTyping returns true when the textarea input is focused.
+// IsTyping returns true when in input editing mode.
 func (m JWTModel) IsTyping() bool {
-	return m.activeField == 0 // textarea for JWT token
+	return m.typing
 }
 
 // Init implements tea.Model.
@@ -83,8 +83,15 @@ func (m JWTModel) Update(msg tea.Msg) (JWTModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+r", "enter":
-			// Analyze the token
+		case "tab":
+			if !m.typing {
+				m.typing = true
+				m.tokenInput.Focus()
+			}
+		case "ctrl+s":
+			m.typing = false
+			m.tokenInput.Blur()
+		case "ctrl+r":
 			token := strings.TrimSpace(m.tokenInput.Value())
 			if token != "" {
 				analysis := core.AnalyzeJWT(token)
@@ -93,13 +100,14 @@ func (m JWTModel) Update(msg tea.Msg) (JWTModel, tea.Cmd) {
 				m.resultVP.SetContent(m.buildAnalysisContent())
 			}
 		case "ctrl+enter":
-			// Also analyze on ctrl+enter (enter is captured by textarea)
-			token := strings.TrimSpace(m.tokenInput.Value())
-			if token != "" {
-				analysis := core.AnalyzeJWT(token)
-				m.analysis = &analysis
-				m.err = nil
-				m.resultVP.SetContent(m.buildAnalysisContent())
+			if m.typing {
+				token := strings.TrimSpace(m.tokenInput.Value())
+				if token != "" {
+					analysis := core.AnalyzeJWT(token)
+					m.analysis = &analysis
+					m.err = nil
+					m.resultVP.SetContent(m.buildAnalysisContent())
+				}
 			}
 		case "g":
 			m.resultVP.GotoTop()
@@ -108,7 +116,7 @@ func (m JWTModel) Update(msg tea.Msg) (JWTModel, tea.Cmd) {
 		case "j", "down":
 			if m.analysis != nil {
 				m.resultVP.LineDown(1)
-			} else {
+			} else if m.typing {
 				var cmd tea.Cmd
 				m.tokenInput, cmd = m.tokenInput.Update(msg)
 				if cmd != nil {
@@ -118,7 +126,7 @@ func (m JWTModel) Update(msg tea.Msg) (JWTModel, tea.Cmd) {
 		case "k", "up":
 			if m.analysis != nil {
 				m.resultVP.LineUp(1)
-			} else {
+			} else if m.typing {
 				var cmd tea.Cmd
 				m.tokenInput, cmd = m.tokenInput.Update(msg)
 				if cmd != nil {
@@ -129,10 +137,12 @@ func (m JWTModel) Update(msg tea.Msg) (JWTModel, tea.Cmd) {
 			// Clear analysis to go back to input
 			m.analysis = nil
 		default:
-			var cmd tea.Cmd
-			m.tokenInput, cmd = m.tokenInput.Update(msg)
-			if cmd != nil {
-				cmds = append(cmds, cmd)
+			if m.typing {
+				var cmd tea.Cmd
+				m.tokenInput, cmd = m.tokenInput.Update(msg)
+				if cmd != nil {
+					cmds = append(cmds, cmd)
+				}
 			}
 		}
 	}

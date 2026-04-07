@@ -32,6 +32,7 @@ type LeaksModel struct {
 	responseVP  viewport.Model
 	isLoading   bool
 	spinner     spinner.Model
+	typing      bool
 	width       int
 	height      int
 	t           theme.Theme
@@ -45,7 +46,6 @@ func NewLeaks() LeaksModel {
 	url := textinput.New()
 	url.Placeholder = "https://api.example.com/data"
 	url.CharLimit = 2048
-	url.Focus()
 
 	raw := textinput.New()
 	raw.Placeholder = "Or paste raw text/JSON to scan here..."
@@ -88,9 +88,9 @@ func (m *LeaksModel) SetSize(w, h int) {
 	m.responseVP.Height = vpHeight
 }
 
-// IsTyping returns true when a text input is focused.
+// IsTyping returns true when in input editing mode.
 func (m LeaksModel) IsTyping() bool {
-	return m.activeField < 2 // 0=url, 1=raw text input
+	return m.typing
 }
 
 // runLeakScan fetches URL and scans for leaks.
@@ -142,29 +142,61 @@ func (m LeaksModel) Update(msg tea.Msg) (LeaksModel, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "tab", "shift+tab":
-			m.activeField = 1 - m.activeField
-			if m.activeField == 0 {
+		case "tab":
+			if !m.typing {
+				m.typing = true
+				m.activeField = 0
 				m.urlInput.Focus()
 				m.rawInput.Blur()
 			} else {
-				m.urlInput.Blur()
-				m.rawInput.Focus()
+				// Cycle between the two fields
+				m.activeField = 1 - m.activeField
+				if m.activeField == 0 {
+					m.urlInput.Focus()
+					m.rawInput.Blur()
+				} else {
+					m.urlInput.Blur()
+					m.rawInput.Focus()
+				}
 			}
+		case "shift+tab":
+			if m.typing {
+				m.activeField = 1 - m.activeField
+				if m.activeField == 0 {
+					m.urlInput.Focus()
+					m.rawInput.Blur()
+				} else {
+					m.urlInput.Blur()
+					m.rawInput.Focus()
+				}
+			}
+		case "ctrl+s":
+			m.typing = false
+			m.urlInput.Blur()
+			m.rawInput.Blur()
 		case "ctrl+m":
 			// Toggle between URL and raw input modes
 			m.useRaw = !m.useRaw
-		case "ctrl+r", "enter":
-			if m.activeField == 0 || m.activeField == 1 {
-				if !m.isLoading {
-					input := m.urlInput.Value()
-					if m.useRaw {
-						input = m.rawInput.Value()
-					}
-					if input != "" {
-						m.isLoading = true
-						cmds = append(cmds, m.runLeakScan(), m.spinner.Tick)
-					}
+		case "ctrl+r":
+			if !m.isLoading {
+				input := m.urlInput.Value()
+				if m.useRaw {
+					input = m.rawInput.Value()
+				}
+				if input != "" {
+					m.isLoading = true
+					cmds = append(cmds, m.runLeakScan(), m.spinner.Tick)
+				}
+			}
+		case "enter":
+			if m.typing && !m.isLoading {
+				input := m.urlInput.Value()
+				if m.useRaw {
+					input = m.rawInput.Value()
+				}
+				if input != "" {
+					m.isLoading = true
+					cmds = append(cmds, m.runLeakScan(), m.spinner.Tick)
 				}
 			}
 		case "g":
@@ -173,7 +205,7 @@ func (m LeaksModel) Update(msg tea.Msg) (LeaksModel, tea.Cmd) {
 			m.responseVP.GotoBottom()
 		}
 
-		if !m.isLoading {
+		if m.typing && !m.isLoading {
 			if m.activeField == 0 {
 				var cmd tea.Cmd
 				m.urlInput, cmd = m.urlInput.Update(msg)

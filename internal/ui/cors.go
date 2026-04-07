@@ -27,6 +27,7 @@ type CORSModel struct {
 	viewport  viewport.Model
 	isLoading bool
 	spinner   spinner.Model
+	typing    bool
 	width     int
 	height    int
 	t         theme.Theme
@@ -38,7 +39,6 @@ func NewCORS() CORSModel {
 	urlIn := textinput.New()
 	urlIn.Placeholder = "https://api.example.com/endpoint"
 	urlIn.CharLimit = 2048
-	urlIn.Focus()
 
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
@@ -75,10 +75,7 @@ func (m *CORSModel) SetSize(w, h int) {
 	m.viewport.Height = vpHeight
 }
 
-// IsTyping returns true when the URL input is focused (always, as it's the only input).
-func (m CORSModel) IsTyping() bool {
-	return true
-}
+func (m CORSModel) IsTyping() bool { return m.typing }
 
 func (m CORSModel) runCORS() tea.Cmd {
 	return func() tea.Msg {
@@ -116,14 +113,27 @@ func (m CORSModel) Update(msg tea.Msg) (CORSModel, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+r", "enter":
-			if !m.isLoading {
-				if m.urlInput.Value() != "" {
-					m.isLoading = true
-					m.results = nil
-					m.err = nil
-					cmds = append(cmds, m.runCORS(), m.spinner.Tick)
-				}
+		case "tab":
+			if !m.typing {
+				m.typing = true
+				m.urlInput.Focus()
+			}
+		case "ctrl+s":
+			m.typing = false
+			m.urlInput.Blur()
+		case "ctrl+r":
+			if !m.isLoading && m.urlInput.Value() != "" {
+				m.isLoading = true
+				m.results = nil
+				m.err = nil
+				cmds = append(cmds, m.runCORS(), m.spinner.Tick)
+			}
+		case "enter":
+			if m.typing && !m.isLoading && m.urlInput.Value() != "" {
+				m.isLoading = true
+				m.results = nil
+				m.err = nil
+				cmds = append(cmds, m.runCORS(), m.spinner.Tick)
 			}
 		case "g":
 			m.viewport.GotoTop()
@@ -135,7 +145,7 @@ func (m CORSModel) Update(msg tea.Msg) (CORSModel, tea.Cmd) {
 			m.viewport.LineUp(1)
 		}
 
-		if !m.isLoading {
+		if m.typing && !m.isLoading {
 			var cmd tea.Cmd
 			m.urlInput, cmd = m.urlInput.Update(msg)
 			if cmd != nil {

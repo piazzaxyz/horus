@@ -35,6 +35,7 @@ type AuthModel struct {
 	headersInput textinput.Model
 	mode         int // 0=IDOR, 1=RateLimit
 	activeField  int // 0..3
+	typing       bool
 
 	bypassResults []string
 	idorResults   []core.IDORResult
@@ -53,7 +54,6 @@ func NewAuth() AuthModel {
 	urlIn := textinput.New()
 	urlIn.Placeholder = "https://api.example.com/users/{id}"
 	urlIn.CharLimit = 2048
-	urlIn.Focus()
 
 	startIn := textinput.New()
 	startIn.Placeholder = "1"
@@ -86,9 +86,9 @@ func NewAuth() AuthModel {
 	}
 }
 
-// IsTyping returns true when a text input is focused.
+// IsTyping returns true when in input editing mode.
 func (m AuthModel) IsTyping() bool {
-	return m.activeField < 4 // 0=url, 1=startID, 2=endID, 3=headers — all text inputs
+	return m.typing
 }
 
 // SetTheme updates the theme.
@@ -219,11 +219,24 @@ func (m AuthModel) Update(msg tea.Msg) (AuthModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
-			m.activeField = (m.activeField + 1) % m.maxFields()
+			if !m.typing {
+				m.typing = true
+				m.activeField = 0
+			} else {
+				m.activeField = (m.activeField + 1) % m.maxFields()
+			}
 			m = m.focusField(m.activeField)
 		case "shift+tab":
-			m.activeField = (m.activeField + m.maxFields() - 1) % m.maxFields()
-			m = m.focusField(m.activeField)
+			if m.typing {
+				m.activeField = (m.activeField + m.maxFields() - 1) % m.maxFields()
+				m = m.focusField(m.activeField)
+			}
+		case "ctrl+s":
+			m.typing = false
+			m.urlInput.Blur()
+			m.startIDInput.Blur()
+			m.endIDInput.Blur()
+			m.headersInput.Blur()
 		case "[":
 			if m.mode > 0 {
 				m.mode--
@@ -236,18 +249,28 @@ func (m AuthModel) Update(msg tea.Msg) (AuthModel, tea.Cmd) {
 				m.activeField = 0
 				m = m.focusField(0)
 			}
-		case "ctrl+r", "enter":
-			if !m.isLoading {
-				if m.urlInput.Value() != "" {
-					m.isLoading = true
-					m.idorResults = nil
-					m.bypassResults = nil
-					m.err = nil
-					if m.mode == 0 {
-						cmds = append(cmds, m.runIDOR(), m.spinner.Tick)
-					} else {
-						cmds = append(cmds, m.runBypass(), m.spinner.Tick)
-					}
+		case "ctrl+r":
+			if !m.isLoading && m.urlInput.Value() != "" {
+				m.isLoading = true
+				m.idorResults = nil
+				m.bypassResults = nil
+				m.err = nil
+				if m.mode == 0 {
+					cmds = append(cmds, m.runIDOR(), m.spinner.Tick)
+				} else {
+					cmds = append(cmds, m.runBypass(), m.spinner.Tick)
+				}
+			}
+		case "enter":
+			if m.typing && !m.isLoading && m.urlInput.Value() != "" {
+				m.isLoading = true
+				m.idorResults = nil
+				m.bypassResults = nil
+				m.err = nil
+				if m.mode == 0 {
+					cmds = append(cmds, m.runIDOR(), m.spinner.Tick)
+				} else {
+					cmds = append(cmds, m.runBypass(), m.spinner.Tick)
 				}
 			}
 		case "g":
@@ -260,8 +283,8 @@ func (m AuthModel) Update(msg tea.Msg) (AuthModel, tea.Cmd) {
 			m.viewport.LineUp(1)
 		}
 
-		// Delegate key to active input
-		if !m.isLoading {
+		// Delegate key to active input — only in typing mode
+		if m.typing && !m.isLoading {
 			var cmd tea.Cmd
 			if m.mode == 0 {
 				switch m.activeField {
