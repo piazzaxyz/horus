@@ -1,52 +1,73 @@
 # 𓂀 Horus
 
-> A terminal-based QA & security auditing toolkit — HTTP analysis, data leak detection, throttle testing and security scanning, all in one fast TUI.
+> A terminal-based QA & security auditing toolkit — HTTP analysis, data leak detection, injection testing, fuzzing, port scanning, JWT analysis, CORS testing and more, all in one fast TUI.
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│  𓂀 HORUS v1.0.0  [Tokyo Night]                        ● Connected    │
-├────────────────────┬─────────────────────────────────────────────────┤
-│                    │                                                 │
-│  NAVIGATION        │   Dashboard                                     │
-│                    │                                                 │
-│  ● Dashboard       │   ┌──────────────┐  ┌──────────────┐            │
-│  ○ HTTP Analyzer   │   │ Tasks Run    │  │ Leaks Found  │            │
-│  ○ Task Runner     │   │     42       │  │      3       │            │
-│  ○ Leak Scanner    │   └──────────────┘  └──────────────┘            │
-│  ○ Throttle        │                                                 │
-│  ○ Security        │   ┌──────────────┐  ┌──────────────┐            │
-│  ────────────────  │   │  Avg. Time   │  │   Security   │            │
-│  ○ Themes          │   │   145ms      │  │  Issues: 7   │            │
-│  ○ Tutorial        │   └──────────────┘  └──────────────┘            │
-│                    │                                                 │
-│                    │   Recent Activity                               │
-│                    │   ✓ GET /api/users     200  142ms               │
-│                    │   ✗ POST /api/auth     401   89ms  [LEAK]       │
-│                    │   ⚠ GET /api/data      200 1204ms  [SLOW]       │
-├────────────────────┴──────────────────────────────────────────────────┤
-│  [1-8] Navigate   [r] Run   [t] Theme   [?] Help   [q] Quit           │
-└───────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  𓂀 HORUS v1.0.0  [Tokyo Night]                           ● Connected   │
+├──────────────────────┬──────────────────────────────────────────────────┤
+│                      │                                                  │
+│  QA / TESTING        │   Dashboard                                      │
+│  ────────────────    │                                                  │
+│  ● [1] Dashboard     │   ┌─────────────┐  ┌─────────────┐             │
+│  ○ [2] HTTP Analyzer │   │ Tasks Run   │  │ Leaks Found │             │
+│  ○ [3] Task Runner   │   │     42      │  │      3      │             │
+│  ○ [4] Leak Scanner  │   └─────────────┘  └─────────────┘             │
+│  ○ [5] Throttle Det. │                                                  │
+│  ○ [6] Security Scan │   ┌─────────────┐  ┌─────────────┐             │
+│                      │   │  Avg. Time  │  │  Security   │             │
+│  CYBER / PENTEST     │   │   145ms     │  │  Issues: 7  │             │
+│  ────────────────    │   └─────────────┘  └─────────────┘             │
+│  ○ [7] Injection     │                                                  │
+│  ○ [8] Fuzzer        │   Recent Activity                                │
+│  ○ [9] Port Scanner  │   ✓ GET /api/users     200  142ms               │
+│  ○ [0] JWT Analyzer  │   ✗ POST /api/auth     401   89ms  [LEAK]       │
+│  ○ [-] CORS Tester   │   ⚠ GET /api/data      200 1204ms  [SLOW]       │
+│  ○ [=] Auth / IDOR   │                                                  │
+│                      │                                                  │
+│  SETTINGS            │                                                  │
+│  ────────────────    │                                                  │
+│  ○ [T] Themes        │                                                  │
+│  ○     Tutorial      │                                                  │
+├──────────────────────┴──────────────────────────────────────────────────┤
+│  q:quit  ?:help  ctrl+t:theme  ctrl+r:run  1-9,0,-,=:views  Tab:focus  │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Features
 
-| View | Description |
-|------|-------------|
-| **Dashboard** | Real-time stats, activity log, and quick overview |
-| **HTTP Analyzer** | Send requests, measure response time, inspect headers and body |
-| **Task Runner** | Define and run suites of HTTP tests with pass/fail results |
-| **Leak Scanner** | Detect PII, credentials, tokens, and secrets in HTTP responses |
-| **Throttle Detector** | Identify rate limiting patterns, parse Retry-After headers |
-| **Security Scanner** | Audit 12+ security headers, CORS, and TLS configuration |
-| **Theme Picker** | Live-preview and switch between 7 themes |
-| **Tutorial** | Interactive 8-step guide to get started |
+### QA / Testing
 
-### Leak Detection Patterns
-JWT tokens · AWS keys · GitHub tokens · Slack tokens · Google API keys · Credit cards · SSNs · Private keys (PEM) · Passwords in JSON · Bearer tokens · DB connection strings · Emails · Internal IPs
+| View | Key | Description |
+|------|-----|-------------|
+| **Dashboard** | `1` | Real-time stats, global activity log, quick overview |
+| **HTTP Analyzer** | `2` | Send requests, measure response time, inspect headers and body |
+| **Task Runner** | `3` | Define and run HTTP test suites with pass/fail results |
+| **Leak Scanner** | `4` | Detect PII, credentials, tokens and secrets in HTTP responses |
+| **Throttle Detector** | `5` | Identify rate limiting patterns, parse Retry-After headers |
+| **Security Scanner** | `6` | Audit 12+ security headers, CORS, and TLS configuration |
 
-### Security Header Checks
+### Cyber / Pentest
+
+| View | Key | Description |
+|------|-----|-------------|
+| **Injection Tester** | `7` | SQLi, XSS, SSTI, Path Traversal, Command Injection — automated payloads with response analysis |
+| **Fuzzer** | `8` | 80+ built-in paths (`.env`, `.git/config`, `swagger`, `wp-admin`...) + custom wordlist, concurrent |
+| **Port Scanner** | `9` | TCP scan with banner grabbing, 50+ services mapped (MySQL, Redis, MongoDB, SSH...) |
+| **JWT Analyzer** | `0` | Decode without external libs, detect `alg:none`, brute force weak secrets, check expiry |
+| **CORS Tester** | `-` | 5 origin scenarios (arbitrary, null, subdomain wildcard, prefix match), misconfiguration detection |
+| **Auth / IDOR** | `=` | Sequential ID probing, rate limit bypass with 10 header spoofing techniques |
+
+---
+
+## Leak Detection Patterns
+
+JWT tokens · AWS keys · GitHub tokens · Slack tokens · Google API keys · Credit cards · SSNs · Private keys (PEM) · Passwords in JSON · Bearer tokens · DB connection strings · Emails · Internal IPs · ENV variables (`DATABASE_URL`, `SECRET_KEY`...) · Stack traces (Java/Python/PHP) · Debug mode active
+
+## Security Header Checks
+
 `Content-Security-Policy` · `Strict-Transport-Security` · `X-Frame-Options` · `X-Content-Type-Options` · `Referrer-Policy` · `Permissions-Policy` · `X-XSS-Protection` · CORS misconfiguration · TLS version analysis
 
 ---
@@ -62,6 +83,8 @@ JWT tokens · AWS keys · GitHub tokens · Slack tokens · Google API keys · Cr
 | Gruvbox Dark | Warm earth tones |
 | One Dark | Atom-inspired |
 | Everforest | Green & earthy |
+
+Cycle themes with `Ctrl+T` or pick one visually in the **Theme Picker** (`T`).
 
 ---
 
@@ -112,16 +135,31 @@ make build-all
 
 | Key | Action |
 |-----|--------|
-| `1` – `8` | Switch views |
+| `1` – `6` | QA / Testing views |
+| `7` – `9`, `0`, `-`, `=` | Cyber / Pentest views |
+| `T` | Theme Picker |
 | `j` / `k` | Navigate lists |
-| `h` / `l` | Sidebar / tutorial prev & next |
+| `h` / `l` | Previous / next (tutorial, sidebar) |
 | `Tab` / `Shift+Tab` | Focus next / previous input |
-| `r` / `Enter` | Run action in current view |
-| `t` | Cycle theme |
+| `[` / `]` | Cycle injection type or mode |
+| `Ctrl+R` / `Enter` | Run action in current view |
+| `Ctrl+T` | Cycle theme |
 | `?` | Toggle help overlay |
 | `g` / `G` | Jump to top / bottom |
 | `Esc` | Cancel / back |
 | `q` | Quit |
+
+---
+
+## No configuration needed
+
+Horus is a black-box tool — just point it at any URL or IP and run. No `.env`, no database, no external services required. Works completely standalone against local or remote targets.
+
+```
+Horus TUI  ──HTTP──▶  localhost:3000  /  staging.app.com  /  prod
+```
+
+If the target requires authentication, add the token directly in the **Headers** field.
 
 ---
 
@@ -135,22 +173,34 @@ horus/
 ├── install.sh
 ├── install.ps1
 └── internal/
-    ├── theme/        # 7 themes with 17 color slots each
+    ├── theme/            # 7 themes with 17 color slots each
     ├── core/
-    │   ├── types.go      # Shared types
+    │   ├── types.go      # Shared types and page constants
     │   ├── http.go       # HTTP client with timing
-    │   ├── leak.go       # Regex-based leak detection
+    │   ├── leak.go       # Regex-based leak detection (25+ patterns)
+    │   ├── injection.go  # Injection payloads and response analysis
+    │   ├── fuzzer.go     # Path fuzzer with built-in wordlist
+    │   ├── portscan.go   # TCP port scanner with banner grabbing
+    │   ├── jwt.go        # JWT decoder and vulnerability checks
+    │   ├── cors.go       # CORS misconfiguration testing
+    │   ├── auth.go       # IDOR probing and rate limit bypass
     │   ├── throttle.go   # Rate limit detection
     │   └── security.go   # Security header auditing
     └── ui/
         ├── app.go        # Root bubbletea model
-        ├── layout.go     # Header, sidebar, footer
+        ├── layout.go     # Header, sidebar, footer, help overlay
         ├── dashboard.go
         ├── analyzer.go
         ├── tasks.go
         ├── leaks.go
         ├── throttle.go
         ├── security.go
+        ├── injection.go
+        ├── fuzzer.go
+        ├── portscan.go
+        ├── jwt.go
+        ├── cors.go
+        ├── auth.go
         ├── themes.go
         └── tutorial.go
 ```
