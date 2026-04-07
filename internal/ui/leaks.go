@@ -88,6 +88,11 @@ func (m *LeaksModel) SetSize(w, h int) {
 	m.responseVP.Height = vpHeight
 }
 
+// IsTyping returns true when a text input is focused.
+func (m LeaksModel) IsTyping() bool {
+	return m.activeField < 2 // 0=url, 1=raw text input
+}
+
 // runLeakScan fetches URL and scans for leaks.
 func (m LeaksModel) runLeakScan() tea.Cmd {
 	return func() tea.Msg {

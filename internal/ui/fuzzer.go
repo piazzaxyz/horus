@@ -93,6 +93,11 @@ func (m *FuzzerModel) SetSize(w, h int) {
 	m.viewport.Height = vpHeight
 }
 
+// IsTyping returns true when a text input is focused.
+func (m FuzzerModel) IsTyping() bool {
+	return m.activeField < 3 // 0=url, 1=wordlist, 2=concurrency — all text inputs
+}
+
 func (m FuzzerModel) runFuzz() tea.Cmd {
 	return func() tea.Msg {
 		baseURL := m.urlInput.Value()
@@ -211,30 +216,32 @@ func (m FuzzerModel) Update(msg tea.Msg) (FuzzerModel, tea.Cmd) {
 }
 
 func (m FuzzerModel) buildResultsContent() string {
+	t := m.t
 	if len(m.results) == 0 {
 		return "No results"
 	}
 	var lines []string
-	found := 0
-	for _, r := range m.results {
-		if r.Found {
-			found++
-		}
-	}
-	lines = append(lines, fmt.Sprintf("Probed: %d paths, Found: %d", len(m.results), found))
+
+	headerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(t.Muted)).Bold(true)
+	lines = append(lines, headerStyle.Render(fmt.Sprintf("  %-6s  %-8s  %-10s  Path", "HTTP", "Size", "Duration")))
 	lines = append(lines, strings.Repeat("─", 60))
 
 	for _, r := range m.results {
 		if !r.Found {
 			continue
 		}
-		line := fmt.Sprintf("HTTP %-3d  %-8d bytes  %-10s  %s",
-			r.StatusCode,
-			r.Size,
-			r.Duration.Round(1000000).String(),
-			r.Path,
-		)
-		lines = append(lines, line)
+		codeColor := statusColor(r.StatusCode, t)
+		codeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(codeColor)).Bold(true)
+		rest := lipgloss.NewStyle().Foreground(lipgloss.Color(t.Foreground)).Render(
+			fmt.Sprintf("  %-8d  %-10s  %s",
+				r.Size,
+				r.Duration.Round(1000000).String(),
+				r.Path,
+			))
+		lines = append(lines, lipgloss.JoinHorizontal(lipgloss.Top,
+			codeStyle.Render(fmt.Sprintf("  %-6d", r.StatusCode)),
+			rest,
+		))
 	}
 
 	return strings.Join(lines, "\n")
@@ -315,26 +322,13 @@ func (m FuzzerModel) View(t theme.Theme) string {
 		sections = append(sections, titleStyle.Render(fmt.Sprintf("Paths Found: %d / %d probed", found, len(m.results))))
 		sections = append(sections, renderDivider(contentWidth-4, t))
 
-		// Header
-		headerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(t.Muted)).Bold(true)
-		sections = append(sections, headerStyle.Render(fmt.Sprintf("  %-6s  %-8s  %-10s  Path", "HTTP", "Size", "Duration")))
-
-		for _, r := range m.results {
-			if !r.Found {
-				continue
-			}
-			codeColor := statusColor(r.StatusCode, t)
-			codeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(codeColor)).Bold(true)
-			line := fmt.Sprintf("  %-8d  %-10s  %s",
-				r.Size,
-				r.Duration.Round(1000000).String(),
-				r.Path,
-			)
-			sections = append(sections, lipgloss.JoinHorizontal(lipgloss.Top,
-				codeStyle.Render(fmt.Sprintf("  %-6d", r.StatusCode)),
-				lipgloss.NewStyle().Foreground(lipgloss.Color(t.Foreground)).Render(line),
-			))
-		}
+		// Render results inside the bounded viewport (prevents overflow)
+		vpStyle := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color(t.Border)).
+			Width(contentWidth - 4)
+		sections = append(sections, vpStyle.Render(m.viewport.View()))
+		sections = append(sections, lipgloss.NewStyle().Foreground(lipgloss.Color(t.Muted)).Render("  j/k: scroll  g/G: top/bottom"))
 	}
 
 	outerStyle := lipgloss.NewStyle().Width(contentWidth).Padding(1, 2)

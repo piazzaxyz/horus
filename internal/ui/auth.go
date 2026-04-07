@@ -86,6 +86,11 @@ func NewAuth() AuthModel {
 	}
 }
 
+// IsTyping returns true when a text input is focused.
+func (m AuthModel) IsTyping() bool {
+	return m.activeField < 4 // 0=url, 1=startID, 2=endID, 3=headers — all text inputs
+}
+
 // SetTheme updates the theme.
 func (m *AuthModel) SetTheme(t theme.Theme) {
 	m.t = t

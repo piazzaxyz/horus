@@ -362,6 +362,11 @@ func (m AnalyzerModel) View(t theme.Theme) string {
 	return outerStyle.Render(strings.Join(sections, "\n"))
 }
 
+// IsTyping returns true when a text input is focused.
+func (m AnalyzerModel) IsTyping() bool {
+	return m.activeField < 4 // fields 0-3 are inputs, 4 is the response viewport
+}
+
 // GetResult returns the latest result for app-level stats tracking.
 func (m AnalyzerModel) GetResult() (*core.Response, []core.DataLeak, []core.SecurityIssue) {
 	return m.result, m.leaks, m.secIssues

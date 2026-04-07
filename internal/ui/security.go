@@ -63,6 +63,11 @@ func (m *SecurityModel) SetSize(w, h int) {
 	m.urlInput.Width = contentWidth - 4
 }
 
+// IsTyping returns true when the URL input is focused (always, as it's the only input).
+func (m SecurityModel) IsTyping() bool {
+	return true
+}
+
 // runSecurity executes the security scan.
 func (m SecurityModel) runSecurity() tea.Cmd {
 	return func() tea.Msg {

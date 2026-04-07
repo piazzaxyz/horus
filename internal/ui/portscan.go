@@ -96,6 +96,11 @@ func (m *PortScanModel) SetSize(w, h int) {
 	m.viewport.Height = vpHeight
 }
 
+// IsTyping returns true when a text input is focused.
+func (m PortScanModel) IsTyping() bool {
+	return m.activeField < 3 // 0=host, 1=startPort, 2=endPort — all text inputs
+}
+
 func (m PortScanModel) runScan() tea.Cmd {
 	return func() tea.Msg {
 		host := m.hostInput.Value()

@@ -75,6 +75,11 @@ func (m *CORSModel) SetSize(w, h int) {
 	m.viewport.Height = vpHeight
 }
 
+// IsTyping returns true when the URL input is focused (always, as it's the only input).
+func (m CORSModel) IsTyping() bool {
+	return true
+}
+
 func (m CORSModel) runCORS() tea.Cmd {
 	return func() tea.Msg {
 		url := m.urlInput.Value()

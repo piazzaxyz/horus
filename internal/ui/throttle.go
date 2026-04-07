@@ -88,6 +88,11 @@ func (m *ThrottleModel) SetSize(w, h int) {
 	m.progress.Width = contentWidth - 4
 }
 
+// IsTyping returns true when a text input is focused.
+func (m ThrottleModel) IsTyping() bool {
+	return m.activeField < 3 // all 3 fields are text inputs
+}
+
 // runThrottle executes the throttle test.
 func (m ThrottleModel) runThrottle() tea.Cmd {
 	return func() tea.Msg {

@@ -86,6 +86,11 @@ func (m *InjectionModel) SetSize(w, h int) {
 	m.viewport.Height = vpHeight
 }
 
+// IsTyping returns true when a text input is focused.
+func (m InjectionModel) IsTyping() bool {
+	return m.activeField < 2 // 0=url, 1=param — both are text inputs
+}
+
 func (m InjectionModel) runInjection() tea.Cmd {
 	return func() tea.Msg {
 		url := m.urlInput.Value()

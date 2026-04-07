@@ -66,6 +66,11 @@ func (m *JWTModel) SetSize(w, h int) {
 	m.resultVP.Height = vpHeight
 }
 
+// IsTyping returns true when the textarea input is focused.
+func (m JWTModel) IsTyping() bool {
+	return m.activeField == 0 // textarea for JWT token
+}
+
 // Init implements tea.Model.
 func (m JWTModel) Init() tea.Cmd {
 	return textarea.Blink
